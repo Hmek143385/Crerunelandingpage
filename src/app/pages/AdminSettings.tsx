@@ -1,204 +1,284 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiCall } from "../../utils/supabase";
-import { ArrowLeft, Save } from "lucide-react";
-import { useNavigate } from "react-router";
+import { 
+  Save, 
+  Globe, 
+  Mail, 
+  Server, 
+  ShieldCheck, 
+  Smartphone,
+  Info
+} from "lucide-react";
 import { toast } from "sonner";
+import { AdminLayout } from "../components/AdminLayout";
+import { motion } from "motion/react";
 
 export default function AdminSettings() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("general");
 
   // Fetch settings
-  const { data: settings, isLoading } = useQuery({
-    queryKey: ["settings"],
+  const { data: settings, isLoading: loadingSettings } = useQuery({
+    queryKey: ["admin-settings"],
     queryFn: () => apiCall("/settings"),
   });
 
-  const [formData, setFormData] = useState({
-    hero_title: "",
-    hero_subtitle: "",
-    contact_email: "",
-    contact_phone: "",
-    contact_address: "",
+  // Fetch SMTP config
+  const { data: smtpConfig, isLoading: loadingSmtp } = useQuery({
+    queryKey: ["admin-smtp"],
+    queryFn: () => apiCall("/smtp-config"),
   });
 
-  React.useEffect(() => {
-    if (settings) {
-      setFormData(settings);
-    }
-  }, [settings]);
-
-  // Update mutation
-  const updateMutation = useMutation({
-    mutationFn: (data: any) =>
+  // Update settings mutation
+  const updateSettingsMutation = useMutation({
+    mutationFn: (newSettings: any) =>
       apiCall("/settings", {
         method: "PUT",
-        body: JSON.stringify(data),
+        body: JSON.stringify(newSettings),
       }),
     onSuccess: () => {
-      toast.success("Paramètres enregistrés");
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
-    },
-    onError: () => {
-      toast.error("Erreur lors de l'enregistrement");
+      toast.success("Paramètres mis à jour");
+      queryClient.invalidateQueries({ queryKey: ["admin-settings"] });
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Update SMTP mutation
+  const updateSmtpMutation = useMutation({
+    mutationFn: (newConfig: any) =>
+      apiCall("/smtp-config", {
+        method: "PUT",
+        body: JSON.stringify(newConfig),
+      }),
+    onSuccess: () => {
+      toast.success("Configuration SMTP enregistrée");
+      queryClient.invalidateQueries({ queryKey: ["admin-smtp"] });
+    },
+  });
+
+  const handleSettingsSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    updateMutation.mutate(formData);
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+    updateSettingsMutation.mutate(data);
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate("/admin")}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <img
-              src="https://ucarecdn.com/8796d3aa-4089-4859-87df-1772ce670f61/-/format/auto/"
-              alt="Premunia Logo"
-              className="h-8 w-auto"
-            />
-            <span className="text-slate-400">|</span>
-            <h1 className="text-xl font-bold text-slate-800">Paramètres</h1>
-          </div>
+  const handleSmtpSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+    updateSmtpMutation.mutate(data);
+  };
+
+  if (loadingSettings || loadingSmtp) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin w-10 h-10 border-4 border-[#EE3B33] border-t-transparent rounded-full" />
         </div>
+      </AdminLayout>
+    );
+  }
+
+  return (
+    <AdminLayout>
+      <header className="mb-10">
+        <h1 className="text-3xl font-bold text-slate-900">Paramètres</h1>
+        <p className="text-slate-500">Configurez l'apparence et le fonctionnement de votre plateforme.</p>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-[#F79E1B] to-[#EE3B33] text-white">
-            <h2 className="text-2xl font-bold">Configuration du site</h2>
-            <p className="opacity-90 mt-1">
-              Personnalisez les textes de votre landing page
-            </p>
-          </div>
+      <div className="grid lg:grid-cols-4 gap-8">
+        {/* Sidebar Tabs */}
+        <div className="lg:col-span-1 space-y-2">
+          <button 
+            onClick={() => setActiveTab("general")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all ${activeTab === 'general' ? 'bg-[#EE3B33] text-white font-bold shadow-lg shadow-red-500/20' : 'text-slate-600 hover:bg-white'}`}
+          >
+            <Globe size={20} />
+            <span>Général</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab("smtp")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all ${activeTab === 'smtp' ? 'bg-[#EE3B33] text-white font-bold shadow-lg shadow-red-500/20' : 'text-slate-600 hover:bg-white'}`}
+          >
+            <Server size={20} />
+            <span>Serveur SMTP</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab("security")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all ${activeTab === 'security' ? 'bg-[#EE3B33] text-white font-bold shadow-lg shadow-red-500/20' : 'text-slate-600 hover:bg-white'}`}
+          >
+            <ShieldCheck size={20} />
+            <span>Sécurité</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab("contact")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all ${activeTab === 'contact' ? 'bg-[#EE3B33] text-white font-bold shadow-lg shadow-red-500/20' : 'text-slate-600 hover:bg-white'}`}
+          >
+            <Smartphone size={20} />
+            <span>Coordonnées</span>
+          </button>
+        </div>
 
-          {isLoading ? (
-            <div className="p-12 text-center text-slate-400">Chargement...</div>
-          ) : (
-            <form onSubmit={handleSubmit} className="p-8 space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Titre principal (Hero)
-                </label>
-                <input
-                  type="text"
-                  value={formData.hero_title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, hero_title: e.target.value })
-                  }
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#EE3B33]/20 focus:border-[#EE3B33] outline-none transition-all"
-                  placeholder="Préparez votre retraite sans sacrifier votre présent"
-                />
-              </div>
+        {/* Content Area */}
+        <div className="lg:col-span-3">
+          <motion.div 
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100"
+          >
+            {activeTab === "general" && (
+              <form onSubmit={handleSettingsSubmit} className="space-y-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-slate-800">Paramètres du Site</h2>
+                  <button type="submit" className="flex items-center gap-2 px-6 py-2 bg-[#EE3B33] text-white rounded-xl font-bold hover:bg-[#880E4F] transition-all">
+                    <Save size={18} /> Enregistrer
+                  </button>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Sous-titre (Hero)
-                </label>
-                <textarea
-                  value={formData.hero_subtitle}
-                  onChange={(e) =>
-                    setFormData({ ...formData, hero_subtitle: e.target.value })
-                  }
-                  rows={3}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#EE3B33]/20 focus:border-[#EE3B33] outline-none transition-all"
-                  placeholder="Le Plan Épargne Retraite (PER) sur-mesure..."
-                />
-              </div>
-
-              <div className="border-t border-slate-200 pt-6 mt-6">
-                <h3 className="font-bold text-slate-800 mb-4">
-                  Informations de contact
-                </h3>
-
-                <div className="space-y-4">
+                <div className="grid gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Email de contact
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.contact_email}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          contact_email: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#EE3B33]/20 focus:border-[#EE3B33] outline-none transition-all"
-                      placeholder="contact@premunia.fr"
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Titre Hero (Landing)</label>
+                    <textarea 
+                      name="hero_title"
+                      defaultValue={settings?.hero_title}
+                      rows={2}
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#EE3B33]/20 outline-none"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Téléphone
-                    </label>
-                    <input
-                      type="tel"
-                      value={formData.contact_phone}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          contact_phone: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#EE3B33]/20 focus:border-[#EE3B33] outline-none transition-all"
-                      placeholder="01 00 00 00 00"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Adresse
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.contact_address}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          contact_address: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#EE3B33]/20 focus:border-[#EE3B33] outline-none transition-all"
-                      placeholder="828 Av. Roger Salengro, 92370 Chaville"
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Sous-titre Hero</label>
+                    <textarea 
+                      name="hero_subtitle"
+                      defaultValue={settings?.hero_subtitle}
+                      rows={3}
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#EE3B33]/20 outline-none"
                     />
                   </div>
                 </div>
-              </div>
+              </form>
+            )}
 
-              <div className="flex gap-4 pt-6">
-                <button
-                  type="button"
-                  onClick={() => navigate("/admin")}
-                  className="flex-1 py-3 px-6 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors font-medium"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={updateMutation.isPending}
-                  className="flex-1 py-3 px-6 bg-[#EE3B33] text-white rounded-xl hover:bg-[#880E4F] transition-colors font-bold disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <Save size={20} />
-                  {updateMutation.isPending ? "Enregistrement..." : "Enregistrer"}
-                </button>
+            {activeTab === "smtp" && (
+              <form onSubmit={handleSmtpSubmit} className="space-y-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-slate-800">Configuration Email (SMTP)</h2>
+                  <button type="submit" className="flex items-center gap-2 px-6 py-2 bg-[#EE3B33] text-white rounded-xl font-bold hover:bg-[#880E4F] transition-all">
+                    <Save size={18} /> Enregistrer
+                  </button>
+                </div>
+
+                <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex gap-3 mb-6 text-blue-800">
+                  <Info size={20} className="shrink-0 mt-0.5" />
+                  <p className="text-sm">
+                    Ces paramètres sont utilisés pour envoyer les emails d'automatisation. Utilisez un service comme SendGrid, Mailjet ou Amazon SES.
+                  </p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Hôte SMTP</label>
+                    <input 
+                      name="host"
+                      defaultValue={smtpConfig?.host}
+                      placeholder="smtp.example.com"
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#EE3B33]/20 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Port</label>
+                    <input 
+                      name="port"
+                      defaultValue={smtpConfig?.port}
+                      placeholder="587"
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#EE3B33]/20 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Utilisateur</label>
+                    <input 
+                      name="user"
+                      defaultValue={smtpConfig?.user}
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#EE3B33]/20 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Mot de passe</label>
+                    <input 
+                      name="password"
+                      type="password"
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#EE3B33]/20 outline-none"
+                    />
+                  </div>
+                </div>
+              </form>
+            )}
+
+            {activeTab === "contact" && (
+              <form onSubmit={handleSettingsSubmit} className="space-y-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-slate-800">Coordonnées de l'entreprise</h2>
+                  <button type="submit" className="flex items-center gap-2 px-6 py-2 bg-[#EE3B33] text-white rounded-xl font-bold hover:bg-[#880E4F] transition-all">
+                    <Save size={18} /> Enregistrer
+                  </button>
+                </div>
+
+                <div className="grid gap-6">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Email de contact</label>
+                    <input 
+                      name="contact_email"
+                      defaultValue={settings?.contact_email}
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#EE3B33]/20 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Téléphone</label>
+                    <input 
+                      name="contact_phone"
+                      defaultValue={settings?.contact_phone}
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#EE3B33]/20 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Adresse</label>
+                    <textarea 
+                      name="contact_address"
+                      defaultValue={settings?.contact_address}
+                      rows={2}
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#EE3B33]/20 outline-none"
+                    />
+                  </div>
+                </div>
+              </form>
+            )}
+
+            {activeTab === "security" && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold text-slate-800 mb-4">Paramètres de sécurité</h2>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div>
+                      <h4 className="font-bold text-slate-800">Authentification à deux facteurs</h4>
+                      <p className="text-xs text-slate-500">Ajoutez une couche de sécurité supplémentaire à votre compte.</p>
+                    </div>
+                    <button className="px-4 py-2 bg-slate-200 text-slate-600 rounded-xl font-bold text-sm">Bientôt</button>
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div>
+                      <h4 className="font-bold text-slate-800">Logs de connexion</h4>
+                      <p className="text-xs text-slate-500">Consultez l'historique des accès à l'interface admin.</p>
+                    </div>
+                    <button className="text-[#EE3B33] font-bold text-sm">Voir →</button>
+                  </div>
+                </div>
               </div>
-            </form>
-          )}
+            )}
+          </motion.div>
         </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 }

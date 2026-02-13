@@ -490,38 +490,40 @@ export default function LandingPage() {
                 </ul>
               </div>
             </div>
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 h-[400px]">
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 h-[450px] flex flex-col min-w-0">
               <h4 className="text-lg font-bold mb-8 text-center">
                 Visualisation de l'économie (TMI 41%)
               </h4>
-              <ResponsiveContainer width="100%" height="80%">
-                <BarChart
-                  data={CHART_DATA}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis hide />
-                  <Tooltip
-                    cursor={{ fill: "transparent" }}
-                    contentStyle={{
-                      borderRadius: "1rem",
-                      border: "none",
-                      boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-                    }}
-                  />
-                  <Bar dataKey="value" radius={[10, 10, 0, 0]}>
-                    {CHART_DATA.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="flex-1 min-h-0 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={CHART_DATA}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis hide />
+                    <Tooltip
+                      cursor={{ fill: "transparent" }}
+                      contentStyle={{
+                        borderRadius: "1rem",
+                        border: "none",
+                        boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+                      }}
+                    />
+                    <Bar dataKey="value" radius={[10, 10, 0, 0]}>
+                      {CHART_DATA.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
               <p className="text-center text-xs text-slate-400 mt-4 italic">
                 Simulation basée sur un versement unique de 10 000€
               </p>

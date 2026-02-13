@@ -9,6 +9,7 @@ export const supabase = createClient(
   publicAnonKey
 );
 
+// The unique endpoint for our server
 export const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-07afcff5`;
 
 // Helper to get access token
@@ -31,8 +32,14 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'API request failed');
+    let errorMsg = 'API request failed';
+    try {
+      const error = await response.json();
+      errorMsg = error.error || errorMsg;
+    } catch (e) {
+      // Fallback if not JSON
+    }
+    throw new Error(errorMsg);
   }
 
   return response.json();
